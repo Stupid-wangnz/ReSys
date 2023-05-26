@@ -5,7 +5,7 @@
 |      | Algorithm         |
 | ---- | ----------------- |
 | ✅    | **FunkSVD**       |
-|      | **SVD+Bias**      |
+| ✅    | **SVD+Bias**      |
 |      | **SVD++**         |
 |      | **ItemAttribute** |
 
