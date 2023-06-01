@@ -1,6 +1,8 @@
+import numpy
 from utils import load_data, split_validate_train, output_test_result
 from SVD import FunkSVD, BiasSVD
 
+numpy.random.seed(3407)
 
 def main():
     data, test_data, id_index_dict, n_users, n_items = load_data()

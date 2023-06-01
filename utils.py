@@ -84,7 +84,7 @@ def load_test_data(path='./data/test.txt', id_index_dict=None):
 """
 
 
-def output_test_result(test_result: defaultdict[dict], path='./data/result.txt', id_index_dict=None):
+def output_test_result(test_result, path='./data/result.txt', id_index_dict=None):
     index_id_dict = {v: k for k, v in id_index_dict.items()}
     with open(path, 'w') as f:
         for u, items in test_result.items():
