@@ -144,12 +144,10 @@ class SVDPlusPlus(BiasSVD):
         self.X = None
 
     def fit(self, X, validate_data, n_users, n_items):
-        self.X = X
+        self.X=X
+        # Initialize user and item vectors, user_bias and item_bias
         self.user_vecs = np.random.rand(n_users, self.factors) / (self.factors ** 0.5)
         self.item_vecs = np.random.rand(n_items, self.factors) / (self.factors ** 0.5)
-        # self.user_bias = np.zeros(n_users)
-        # self.item_bias = np.zeros(n_items)
-
         users_score = defaultdict(list)
         items_score = defaultdict(list)
 
@@ -158,28 +156,30 @@ class SVDPlusPlus(BiasSVD):
                 users_score[u].append(item_score)
                 items_score[item_id].append(item_score)
 
-        self.user_bias = np.array([np.mean(scores) for u, scores in users_score.items()])
-        self.item_bias = np.array([np.mean(scores) for item, scores in items_score.items()])
         self.global_bias = np.mean(list(score for user in X for item_id, score in X[user].items()))
+        self.user_bias = np.zeros(n_users)
+        self.item_bias = np.zeros(n_items)
         self.y = np.random.rand(n_items, self.factors) / (self.factors ** 0.5)
 
         for iter in range(self.n_iters):
+            lr = self.lr
+            #lr = self.lr / (2.0 ** iter)
             for u, items in X.items():
+                implict_feedback = self._implicit_feedback(u)
+                num = len(items)
                 for i in items.keys():
-                    e = items[i] - self._score(u, i)  # Compute error residuals
+                    e = items[i] - self._score(u, i, num, implict_feedback)
 
-                    # Update user_bias, item_bias, user_vecs, item_vecs
                     self.user_bias[u] += self.lr * (e - self.bias_reg_param * self.user_bias[u])
                     self.item_bias[i] += self.lr * (e - self.bias_reg_param * self.item_bias[i])
                     self.user_vecs[u, :] += self.lr * (e * self.item_vecs[i, :] - self.reg * self.user_vecs[u, :])
-                    self.item_vecs[i, :] += self.lr * (
-                            e * (self.user_vecs[u, :] + (1/len(self.X[u]))*self._implicit_feedback(u)) - self.reg *
-                            self.item_vecs[i,:])
+                    self.item_vecs[i, :] += self.lr * (e * (self.user_vecs[u, :] + (1/np.sqrt(num)) * implict_feedback) - self.reg *self.item_vecs[i, :])
                     # Update implicit feedback vectors
-                    self.y[i, :] += self.lr * (e * (1/len(self.X[u]))*self.item_vecs[i, :] - self.reg * self.item_vecs[i, :])
+                    self.y[i, :] += self.lr * (e * (1/np.sqrt(num)) * self.item_vecs[i, :] - self.reg * self.y[i, :])
 
-            rmse = self.validate(validate_data)
-            print(f"train iter: {iter}, rmse: {rmse}")
+            train_rmse = self.validate((X))
+            validate_rmse = self.validate(validate_data)
+            print(f"train iter: {iter}, train rmse:{train_rmse}, validate rmse: {validate_rmse}")
 
     def _implicit_feedback(self, u):
         implicit_feedback = np.zeros(self.factors)
@@ -187,8 +187,22 @@ class SVDPlusPlus(BiasSVD):
             implicit_feedback += self.y[i, :]
         return implicit_feedback
 
-    def _score(self, u, i):
-        return self.global_bias + self.user_bias[u] + self.item_bias[i] + np.dot(self.user_vecs[u, :] +
-                                                                    (1/len(self.X[u]))*self._implicit_feedback(u),
-                                                                                 self.item_vecs[i, :].T)
+    def _score(self, u, i, num, implict_feedback):
+        return self.global_bias + self.user_bias[u] + self.item_bias[i] + np.dot(self.user_vecs[u, :] + ( 1/np.sqrt(num) * implict_feedback),
+                                                                                            self.item_vecs[i, :].T)
+
+    def validate(self, validate_data):
+        sse_sum = 0
+        count = 0
+        for u, items in validate_data.items():
+            implict_feedback = self._implicit_feedback(u)
+            num = len(items)
+            for i in items.keys():
+                pred = self._score(u, i, num, implict_feedback)
+                if self.std is not None:
+                    sse_sum += ((pred - items[i])*self.std) ** 2
+                else:
+                    sse_sum += ((pred - items[i])) ** 2
+                count += 1
+        return np.sqrt(sse_sum / count)
             
