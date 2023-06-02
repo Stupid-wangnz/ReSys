@@ -143,7 +143,7 @@ class SVDPlusPlus(BiasSVD):
         self.y = None
         self.X = None
 
-    def fix(self, X, validate_data, n_users, n_items):
+    def fit(self, X, validate_data, n_users, n_items):
         self.X = X
         self.user_vecs = np.random.rand(n_users, self.factors) / (self.factors ** 0.5)
         self.item_vecs = np.random.rand(n_items, self.factors) / (self.factors ** 0.5)
