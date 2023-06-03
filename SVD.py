@@ -159,7 +159,8 @@ class SVDPlusPlus(BiasSVD):
         self.global_bias = np.mean(list(score for user in X for item_id, score in X[user].items()))
         self.user_bias = np.zeros(n_users)
         self.item_bias = np.zeros(n_items)
-        self.y = np.random.rand(n_items, self.factors) / (self.factors ** 0.5)
+        # self.y = np.random.rand(n_items, self.factors) / (self.factors ** 0.5)
+        self.y = np.zeros([n_items, self.factors])
 
         for iter in range(self.n_iters):
             lr = self.lr
