@@ -1,6 +1,8 @@
 import numpy as np
-from utils import load_data, split_validate_train, output_test_result
+from sklearn.preprocessing import MinMaxScaler
+from utils import load_data, split_validate_train, output_test_result, load_attribute
 from SVD import FunkSVD, BiasSVD
+from ItemSVD import ItemSVD
 import argparse
 
 np.random.seed(3407)
@@ -14,7 +16,15 @@ def main():
     # data, test_data, id_index_dict, n_users, n_items, mean, std = load_data_mean_std()
     data, test_data, id_index_dict, n_users, n_items = load_data()
     train_data, validate_data = split_validate_train(data, scale=args.scale)
-    resys = BiasSVD(factors=args.dim, scale=args.scale)
+
+    item_attribute = load_attribute(id_index_dict)
+    scaler = MinMaxScaler()
+    scaler.fit(item_attribute)
+    item_attribute = scaler.transform(item_attribute)
+    item_attribute = np.nan_to_num(item_attribute)
+    print(item_attribute)
+
+    resys = ItemSVD(factors=args.dim, scale=args.scale, item_attribute=item_attribute)
     resys.fit(train_data, validate_data, n_users, n_items)
 
     # test_result = resys.predict(test_data)

@@ -50,6 +50,31 @@ def load_data(path='./data/'):
     return train_data, test_data, id_index_dict, len(train_data), len(item_set)
 
 
+def load_attribute(id_index_dict, path='./data/'):
+    item_attribute = np.full((len(id_index_dict), 2), np.nan)
+    attribute_path = path + 'itemAttribute.txt'
+
+    with open(attribute_path, 'r') as f:
+        lines = f.readlines()
+        for i in range(len(lines)):
+            line = lines[i]
+            line = line.replace('None', '0')
+            item, attribute1, attribute2 = line.split('|')
+            item_id = int(item)
+            if item_id in id_index_dict.keys():
+                item_index = id_index_dict[item_id]
+                if attribute1 == 0:
+                    item_attribute[item_index][0] = np.nan
+                else:
+                    item_attribute[item_index][0] = int(attribute1)
+                if attribute2 == 0:
+                    item_attribute[item_index][1] = np.nan
+                else:
+                    item_attribute[item_index][1] = int(attribute2)
+
+    return item_attribute
+
+
 def split_validate_train(data, validate_size=0.1, scale=1.):
     validate_data = defaultdict(dict)
     train_data = defaultdict(dict)
