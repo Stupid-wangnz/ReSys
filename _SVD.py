@@ -19,29 +19,27 @@ class FunkSVD:
         self.user_vecs = np.random.rand(n_users, self.factors) / (self.factors ** 0.5)
         self.item_vecs = np.random.rand(n_items, self.factors) / (self.factors ** 0.5)
 
-        for epoch in range(self.n_iters):
-            _X = X[np.random.permutation(X.shape[0])]
-            for u, i, r in _X:
-                u = int(u)
-                i = int(i)
-                e = r - np.dot(self.user_vecs[u, :], self.item_vecs[i, :].T)  # Compute error residuals
-                uv = self.user_vecs[u, :]
-                iv = self.item_vecs[i, :]
-                self.user_vecs[u, :] += self.lr * (e * iv - self.reg * uv)
-                self.item_vecs[i, :] += self.lr * (e * uv - self.reg * iv)
+        for _ in range(self.n_iters):
+            for u, items in X.items():
+                for i in items.keys():
+                    e = items[i] - np.dot(self.user_vecs[u, :], self.item_vecs[i, :].T)  # Compute error residuals
+                    uv = self.user_vecs[u, :]
+                    iv = self.item_vecs[i, :]
+                    self.user_vecs[u, :] += self.lr * (e * iv - self.reg * uv)
+                    self.item_vecs[i, :] += self.lr * (e * uv - self.reg * iv)
 
             train_rmse = self.validate(X, True)
             validate_rmse = self.validate(validate_data, False)
-            print(f"train iter: {epoch}, train rmse:{train_rmse}, validate rmse: {validate_rmse}")
+            print(f"train iter: {iter}, train rmse:{train_rmse}, validate rmse: {validate_rmse}")
 
-    def warmup(self, X, warm_up_iters):
+    def warmup(self, X, warm_up_iters, per_iter):
         warm_up_lr = 0
-        per_iter = len(X)
         for warm_up_iter in range(warm_up_iters):
-            for u, i, r in X:
-                e = r - self._score(u, i)
-                self.user_vecs[u, :] += warm_up_lr * (e * self.item_vecs[i, :] - self.reg * self.user_vecs[u, :])
-                self.item_vecs[i, :] += warm_up_lr * (e * self.user_vecs[u, :] - self.reg * self.item_vecs[i, :])
+            for u, items in X.items():
+                for i in items.keys():
+                    e = items[i] - self._score(u, i)
+                    self.user_vecs[u, :] += warm_up_lr * (e * self.item_vecs[i, :] - self.reg * self.user_vecs[u, :])
+                    self.item_vecs[i, :] += warm_up_lr * (e * self.user_vecs[u, :] - self.reg * self.item_vecs[i, :])
                 warm_up_lr += self.lr / (per_iter * warm_up_iters)
 
     def _score(self, u, i):
@@ -50,15 +48,14 @@ class FunkSVD:
     def validate(self, validate_data, train=False):
         sse_sum = 0
         count = 0
-        for u, i, r in validate_data:
-            u = int(u)
-            i = int(i)
-            if train:
-                pred = self._score(u, i)
-            else:
-                pred = self._score(u, i) * self.scale
-            sse_sum += (pred - r) ** 2
-            count += 1
+        for u, items in validate_data.items():
+            for i in items.keys():
+                if train:
+                    pred = self._score(u, i)
+                else:
+                    pred = self._score(u, i) * self.scale
+                sse_sum += (pred - items[i]) ** 2
+                count += 1
         return np.sqrt(sse_sum / count)
 
     def predict(self, test_data):
@@ -82,25 +79,30 @@ class BiasSVD(FunkSVD):
         # Initialize user and item vectors, user_bias and item_bias
         self.user_vecs = np.random.rand(n_users, self.factors) / (self.factors ** 0.5)
         self.item_vecs = np.random.rand(n_items, self.factors) / (self.factors ** 0.5)
+        users_score = defaultdict(list)
+        items_score = defaultdict(list)
 
-        self.global_bias = np.mean([r for _, _, r in X])
+        for u, items in X.items():
+            for item_id, item_score in items.items():
+                users_score[u].append(item_score)
+                items_score[item_id].append(item_score)
+
+        self.global_bias = np.mean(list(score for user in X for item_id, score in X[user].items()))
         self.user_bias = np.zeros(n_users)
         self.item_bias = np.zeros(n_items)
 
         for iter in range(self.n_iters):
             lr = self.lr
-            _X = X[np.random.permutation(X.shape[0])]
-            for u, i, r in _X:
-                u = int(u)
-                i = int(i)
-                e = r - self._score(u, i)  # Compute error residuals
+            for u, items in X.items():
+                for i in items.keys():
+                    e = items[i] - self._score(u, i)  # Compute error residuals
 
-                self.user_bias[u] += lr * (e - self.bias_reg_param * self.user_bias[u])
-                self.item_bias[i] += lr * (e - self.bias_reg_param * self.item_bias[i])
-                uv = self.user_vecs[u, :]
-                iv = self.item_vecs[i, :]
-                self.user_vecs[u, :] += lr * (e * iv - self.reg * uv)
-                self.item_vecs[i, :] += lr * (e * uv - self.reg * iv)
+                    self.user_bias[u] += lr * (e - self.bias_reg_param * self.user_bias[u])
+                    self.item_bias[i] += lr * (e - self.bias_reg_param * self.item_bias[i])
+                    uv = self.user_vecs[u, :]
+                    iv = self.item_vecs[i, :]
+                    self.user_vecs[u, :] += lr * (e * iv - self.reg * uv)
+                    self.item_vecs[i, :] += lr * (e * uv - self.reg * iv)
 
             train_rmse = self.validate(X, True)
             validate_rmse = self.validate(validate_data, False)

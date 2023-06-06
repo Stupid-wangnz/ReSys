@@ -75,6 +75,21 @@ def load_attribute(id_index_dict, path='./data/'):
     return item_attribute
 
 
+def transform_data(data):
+    score_num = sum(len(items) for items in data.values())
+
+    reconstruct_data = np.zeros((score_num, 3))
+    n = 0
+    for u, items in data.items():
+        for i in items.keys():
+            reconstruct_data[n][0] = u
+            reconstruct_data[n][1] = i
+            reconstruct_data[n][2] = items[i]
+            n += 1
+
+    return reconstruct_data
+
+
 def split_validate_train(data, validate_size=0.1, scale=1.):
     validate_data = defaultdict(dict)
     train_data = defaultdict(dict)

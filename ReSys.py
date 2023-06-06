@@ -1,6 +1,6 @@
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
-from utils import load_data, split_validate_train, output_test_result, load_attribute
+from utils import load_data, split_validate_train, output_test_result, load_attribute, transform_data
 from SVD import FunkSVD, BiasSVD
 from ItemSVD import ItemSVD
 import argparse
@@ -22,9 +22,11 @@ def main():
     scaler.fit(item_attribute)
     item_attribute = scaler.transform(item_attribute)
     item_attribute = np.nan_to_num(item_attribute)
-    print(item_attribute)
 
-    resys = ItemSVD(factors=args.dim, scale=args.scale, item_attribute=item_attribute)
+    train_data = transform_data(train_data)
+    validate_data = transform_data(validate_data)
+
+    resys = FunkSVD(factors=args.dim, scale=args.scale)
     resys.fit(train_data, validate_data, n_users, n_items)
 
     # test_result = resys.predict(test_data)

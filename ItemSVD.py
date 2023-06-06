@@ -38,8 +38,10 @@ class ItemSVD(BiasSVD):
                     self.item_bias[i] += lr * (e - self.bias_reg_param * self.item_bias[i])
                     uv = self.user_vecs[u, :]
                     iv = self.item_vecs[i, :]
-                    self.user_vecs[u, :] += lr * (e * iv - self.reg * uv)
-                    self.item_vecs[i, :] += lr * (e * uv - self.reg * iv)
+                    self.user_vecs[u, :] += lr * e * iv
+                    self.user_vecs[u, :self.factors] -= lr * self.reg * uv[:self.factors]
+                    self.item_vecs[i, :] += lr * e * uv
+                    self.item_vecs[i, :self.factors] -= lr * self.reg * iv[:self.factors]
                     self.item_vecs[i, self.factors:] -= lr * self.reg * (
                              self.item_attribute[i, :] - self.item_vecs[i, self.factors:])
 
