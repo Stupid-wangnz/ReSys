@@ -26,7 +26,7 @@ def main():
     train_data = transform_data(train_data)
     validate_data = transform_data(validate_data)
 
-    resys = FunkSVD(factors=args.dim, scale=args.scale)
+    resys = BiasSVD(factors=args.dim, scale=args.scale)
     resys.fit(train_data, validate_data, n_users, n_items)
 
     # test_result = resys.predict(test_data)

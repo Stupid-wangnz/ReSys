@@ -11,39 +11,31 @@ class ItemSVD(BiasSVD):
         self.item_attribute = item_attribute
 
     def fit(self, X, validate_data, n_users, n_items):
-        # Initialize user and item vectors, user_bias and item_bias
-        n_attributes = self.item_attribute.shape[1]
-        self.user_vecs = np.random.rand(n_users, self.factors + n_attributes) / (self.factors ** 0.5)
-        self.item_vecs = np.random.rand(n_items, self.factors + n_attributes) / (self.factors ** 0.5)
-        self.item_vecs[:, self.factors:] = self.item_attribute
-        users_score = defaultdict(list)
-        items_score = defaultdict(list)
+        self.user_vecs = np.random.rand(n_users, self.factors) / (self.factors ** 0.5)
+        self.item_vecs = np.random.rand(n_items, self.factors) / (self.factors ** 0.5)
 
-        for u, items in X.items():
-            for item_id, item_score in items.items():
-                users_score[u].append(item_score)
-                items_score[item_id].append(item_score)
-
-        self.global_bias = np.mean(list(score for user in X for item_id, score in X[user].items()))
+        self.global_bias = np.mean([r for _, _, r in X])
         self.user_bias = np.zeros(n_users)
         self.item_bias = np.zeros(n_items)
 
         for iter in range(self.n_iters):
             lr = self.lr
-            for u, items in X.items():
-                for i in items.keys():
-                    e = items[i] - self._score(u, i)  # Compute error residuals
+            _X = X[np.random.permutation(X.shape[0])]
+            for u, i, r in _X:
+                u = int(u)
+                i = int(i)
+                e = r - self._score(u, i)  # Compute error residuals
 
-                    self.user_bias[u] += lr * (e - self.bias_reg_param * self.user_bias[u])
-                    self.item_bias[i] += lr * (e - self.bias_reg_param * self.item_bias[i])
-                    uv = self.user_vecs[u, :]
-                    iv = self.item_vecs[i, :]
-                    self.user_vecs[u, :] += lr * e * iv
-                    self.user_vecs[u, :self.factors] -= lr * self.reg * uv[:self.factors]
-                    self.item_vecs[i, :] += lr * e * uv
-                    self.item_vecs[i, :self.factors] -= lr * self.reg * iv[:self.factors]
-                    self.item_vecs[i, self.factors:] -= lr * self.reg * (
-                             self.item_attribute[i, :] - self.item_vecs[i, self.factors:])
+                self.user_bias[u] += lr * (e - self.bias_reg_param * self.user_bias[u])
+                self.item_bias[i] += lr * (e - self.bias_reg_param * self.item_bias[i])
+                uv = self.user_vecs[u, :]
+                iv = self.item_vecs[i, :]
+                self.user_vecs[u, :] += lr * e * iv
+                self.user_vecs[u, :self.factors] -= lr * self.reg * uv[:self.factors]
+                self.item_vecs[i, :] += lr * e * uv
+                self.item_vecs[i, :self.factors] -= lr * self.reg * iv[:self.factors]
+                self.item_vecs[i, self.factors:] -= lr * self.reg * (
+                         self.item_attribute[i, :] - self.item_vecs[i, self.factors:])
 
             train_rmse = self.validate(X, True)
             validate_rmse = self.validate(validate_data, False)
