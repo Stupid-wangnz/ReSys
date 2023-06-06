@@ -11,8 +11,10 @@ class ItemSVD(BiasSVD):
         self.item_attribute = item_attribute
 
     def fit(self, X, validate_data, n_users, n_items):
-        self.user_vecs = np.random.rand(n_users, self.factors) / (self.factors ** 0.5)
-        self.item_vecs = np.random.rand(n_items, self.factors) / (self.factors ** 0.5)
+        n_attribute = self.item_attribute.shape[1]
+        self.user_vecs = np.random.rand(n_users, self.factors + n_attribute) / (self.factors ** 0.5)
+        self.item_vecs = np.random.rand(n_items, self.factors + n_attribute) / (self.factors ** 0.5)
+        self.item_vecs[:, self.factors:] = self.item_attribute
 
         self.global_bias = np.mean([r for _, _, r in X])
         self.user_bias = np.zeros(n_users)
@@ -28,14 +30,10 @@ class ItemSVD(BiasSVD):
 
                 self.user_bias[u] += lr * (e - self.bias_reg_param * self.user_bias[u])
                 self.item_bias[i] += lr * (e - self.bias_reg_param * self.item_bias[i])
-                uv = self.user_vecs[u, :]
+                uv = self.user_vecs[u, :self.factors]
                 iv = self.item_vecs[i, :]
-                self.user_vecs[u, :] += lr * e * iv
-                self.user_vecs[u, :self.factors] -= lr * self.reg * uv[:self.factors]
-                self.item_vecs[i, :] += lr * e * uv
-                self.item_vecs[i, :self.factors] -= lr * self.reg * iv[:self.factors]
-                self.item_vecs[i, self.factors:] -= lr * self.reg * (
-                         self.item_attribute[i, :] - self.item_vecs[i, self.factors:])
+                self.user_vecs[u, :] += lr * (e * iv - self.reg * self.user_vecs[u, :])
+                self.item_vecs[i, :self.factors] += lr * (e * uv - self.reg * self.item_vecs[i, :self.factors] )
 
             train_rmse = self.validate(X, True)
             validate_rmse = self.validate(validate_data, False)
