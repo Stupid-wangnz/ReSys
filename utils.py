@@ -104,7 +104,9 @@ def split_validate_train(data, validate_size=0.1, scale=1.):
     return train_data, validate_data
 
 
-def split_validate_train_pre_user(data, n=2, scale=1.):
+def split_validate_train_for_svd(data, n=4, scale=1., id_index_dict=None):
+    index_id_dict = {v: k for k, v in id_index_dict.items()}
+
     validate_data = defaultdict(dict)
     train_data = defaultdict(dict)
     for user, items in data.items():
@@ -112,11 +114,53 @@ def split_validate_train_pre_user(data, n=2, scale=1.):
         np.random.shuffle(items_list)
         validate_items_list = items_list[:n]
         train_items_list = items_list[n:]
-        validate_items = {item_index: (items[item_index] / scale) for item_index in validate_items_list}
-        train_items = {item_index: (items[item_index] / scale) for item_index in train_items_list}
+        validate_items = {index_id_dict[item_index]: (items[item_index]) for item_index in validate_items_list}
+        train_items = {index_id_dict[item_index]: (items[item_index] / scale) for item_index in train_items_list}
         validate_data[user] = validate_items
         train_data[user] = train_items
     return train_data, validate_data
+
+
+def split_validate_train_for_svdknn(data, n=4, scale=1., id_index_dict=None):
+    index_id_dict = {v: k for k, v in id_index_dict.items()}
+
+    validate_data = defaultdict(dict)
+    train_data = defaultdict(dict)
+    for user, items in data.items():
+        items_list = list(items.keys())
+        np.random.shuffle(items_list)
+        validate_items_list = items_list[:n]
+        train_items_list = items_list[n:]
+        validate_items = {index_id_dict[item_index]: (items[item_index]) for item_index in validate_items_list}
+        train_items = {index_id_dict[item_index]: (items[item_index] / scale) for item_index in train_items_list}
+        validate_data[user] = validate_items
+        train_data[user] = train_items
+
+    id_index_dict = {}
+    train_item = set()
+    r_train_data = defaultdict(dict)
+    r_validate_data = defaultdict(dict)
+    for user, items in train_data.items():
+        for item_id in items.keys():
+            if item_id not in train_item:
+                id_index_dict[item_id] = len(train_item)
+                train_item.add(item_id)
+
+            item_index = id_index_dict[item_id]
+            r_train_data[user][item_index] = train_data[user][item_id]
+
+    train_item_len = len(train_item)
+
+    for user, items in validate_data.items():
+        for item_id in items.keys():
+            if item_id not in train_item:
+                id_index_dict[item_id] = len(train_item)
+                train_item.add(item_id)
+            item_index = id_index_dict[item_id]
+            r_validate_data[user][item_index] = validate_data[user][item_id]
+
+    print(f"Total number of items: {len(train_item)}. Train number of items: {train_item_len}")
+    return r_train_data, r_validate_data, id_index_dict, len(r_train_data), train_item_len
 
 
 def output_test_result(test_result, path='./data/result.txt', id_index_dict=None):
