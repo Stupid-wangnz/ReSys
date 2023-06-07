@@ -1,5 +1,7 @@
 import numpy as np
 from collections import defaultdict
+from sklearn.metrics.pairwise import nan_euclidean_distances
+from sklearn.metrics import pairwise_distances
 
 
 def load_data(path='./data/'):
@@ -26,7 +28,7 @@ def load_data(path='./data/'):
                 train_data[user][item_index] = item_score
 
             user_items = f.readline()
-
+    n_items = len(item_set)
     test_data = defaultdict(dict)
     with open(test_path, 'r') as f:
         user_items = f.readline()
@@ -47,7 +49,7 @@ def load_data(path='./data/'):
 
     print(f"Total number of user: {len(train_data)}")
     print(f"Total number of items: {len(item_set)}")
-    return train_data, test_data, id_index_dict, len(train_data), len(item_set)
+    return train_data, test_data, id_index_dict, len(train_data), n_items
 
 
 def load_attribute(id_index_dict, path='./data/'):
@@ -104,7 +106,7 @@ def split_validate_train(data, validate_size=0.1, scale=1.):
     return train_data, validate_data
 
 
-def split_validate_train_for_svd(data, n=4, scale=1., id_index_dict=None):
+def split_validate_train_for_svd(data, n=4, scale=1.):
     validate_data = defaultdict(dict)
     train_data = defaultdict(dict)
     for user, items in data.items():
@@ -168,3 +170,20 @@ def output_test_result(test_result, path='./data/result.txt', id_index_dict=None
             f.write(f"{u}|{len(items)}\n")
             for i in items.keys():
                 f.write(f"{index_id_dict[i]}  {test_result[u][i]}\n")
+
+
+def compute_knn(item_attribute, train_n_items, k=3):
+    test_item_knn = defaultdict(list)
+    train_item = item_attribute[:train_n_items]
+    test_item = item_attribute[train_n_items:]
+
+    dist_m = pairwise_distances(test_item, train_item, metric='nan_euclidean')
+    indices = np.argsort(dist_m, axis=1)
+
+    for i in range(len(test_item)):
+        indices_knn = indices[i][:k]
+        for j in range(k):
+            train_index = indices_knn[j]
+            test_item_knn[i + train_n_items].append(train_index)
+
+    return test_item_knn

@@ -5,7 +5,7 @@ np.seterr(all='raise')
 
 
 class FunkSVD:
-    def __init__(self, learning_rate=0.003, reg_param=0.02, n_iters=50, factors=200, scale=1):
+    def __init__(self, learning_rate=0.005, reg_param=0.01, n_iters=120, factors=250, scale=1):
         self.item_vecs = None
         self.user_vecs = None
         self.lr = learning_rate  # learning rate for gradient descent
@@ -66,12 +66,13 @@ class FunkSVD:
         for u, items in test_data.items():
             for i in items.keys():
                 pred = self._score(u, i) * self.scale
+                pred = max(0, min(100, pred))
                 res[u][i] = pred
         return res
 
 
 class BiasSVD(FunkSVD):
-    def __init__(self, learning_rate=0.003, reg_param=0.01, bias_reg_param=0.01, n_iters=40, factors=250, scale=1):
+    def __init__(self, learning_rate=0.005, reg_param=0.01, bias_reg_param=0.01, n_iters=120, factors=250, scale=1):
         super().__init__(learning_rate, reg_param, n_iters, factors, scale)
         self.global_bias = 0
         self.user_bias = None
@@ -112,7 +113,7 @@ class BiasSVD(FunkSVD):
 
 
 class SVDPlusPlus(BiasSVD):
-    def __init__(self, learning_rate=0.0005, reg_param=0.01, bias_reg_param=0.005, n_iters=50, factors=200, scale=1):
+    def __init__(self, learning_rate=0.005, reg_param=0.01, bias_reg_param=0.01, n_iters=120, factors=250, scale=1):
         super().__init__(learning_rate, reg_param, bias_reg_param, n_iters, factors, scale)
         self.y = None
         self.X = None
