@@ -36,7 +36,7 @@ def main():
 
 def svd_plus_knn():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-dim', type=int, default=200)
+    parser.add_argument('-dim', type=int, default=250)
     parser.add_argument('-scale', type=int, default=20)
     args = parser.parse_args()
     # data, test_data, id_index_dict, n_users, n_items, mean, std = load_data_mean_std()

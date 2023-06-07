@@ -105,8 +105,6 @@ def split_validate_train(data, validate_size=0.1, scale=1.):
 
 
 def split_validate_train_for_svd(data, n=4, scale=1., id_index_dict=None):
-    index_id_dict = {v: k for k, v in id_index_dict.items()}
-
     validate_data = defaultdict(dict)
     train_data = defaultdict(dict)
     for user, items in data.items():
@@ -114,8 +112,8 @@ def split_validate_train_for_svd(data, n=4, scale=1., id_index_dict=None):
         np.random.shuffle(items_list)
         validate_items_list = items_list[:n]
         train_items_list = items_list[n:]
-        validate_items = {index_id_dict[item_index]: (items[item_index]) for item_index in validate_items_list}
-        train_items = {index_id_dict[item_index]: (items[item_index] / scale) for item_index in train_items_list}
+        validate_items = {item_index: (items[item_index]) for item_index in validate_items_list}
+        train_items = {item_index: (items[item_index] / scale) for item_index in train_items_list}
         validate_data[user] = validate_items
         train_data[user] = train_items
     return train_data, validate_data

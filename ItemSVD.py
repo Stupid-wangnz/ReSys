@@ -5,7 +5,7 @@ from SVD import BiasSVD
 
 
 class ItemSVD(BiasSVD):
-    def __init__(self, learning_rate=0.003, reg_param=0.02, bias_reg_param=0.02, n_iters=40, factors=200, scale=1,
+    def __init__(self, learning_rate=0.003, reg_param=0.01, bias_reg_param=0.01, n_iters=40, factors=200, scale=1,
                  item_attribute=None):
         super().__init__(learning_rate, reg_param, bias_reg_param, n_iters, factors, scale)
         self.item_attribute = item_attribute
@@ -45,7 +45,7 @@ class ItemSVD(BiasSVD):
 
 
 class SVDkNN(BiasSVD):
-    def __init__(self, learning_rate=0.003, reg_param=0.02, bias_reg_param=0.02, n_iters=40, factors=200, scale=1,
+    def __init__(self, learning_rate=0.003, reg_param=0.01, bias_reg_param=0.01, n_iters=100, factors=200, scale=1,
                  u_i_dict=None, item_attribute=None, train_n_item=0):
         super().__init__(learning_rate, reg_param, bias_reg_param, n_iters, factors, scale)
         self.u_i_dict = u_i_dict
