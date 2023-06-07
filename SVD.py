@@ -167,13 +167,16 @@ class SVDPlusPlus(BiasSVD):
             self.user_vecs[u, :] + implict_feedback,
             self.item_vecs[i, :].T)
 
-    def validate(self, validate_data, trian=False):
+    def validate(self, validate_data, train=False):
         sse_sum = 0
         count = 0
         for u, items in validate_data.items():
             implict_feedback = self._implicit_feedback(u)
             for i in items.keys():
-                pred = self._score(u, i, implict_feedback) * self.scale
+                if train:
+                    pred = self._score(u, i, implict_feedback)
+                else:
+                    pred = self._score(u, i, implict_feedback) * self.scale
                 sse_sum += ((pred - items[i])) ** 2
                 count += 1
         return np.sqrt(sse_sum / count)
